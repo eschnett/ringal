@@ -1,4 +1,4 @@
-# [ringal][]
+# [ringal](https://github.com/eschnett/ringal)
 
 Experiment with Semiringal and Ringal type classes, extending
 Semigroupal and Monoidal.
@@ -15,6 +15,43 @@ Semigroupal and Monoidal.
   Pipelines](https://dev.azure.com/schnetter/ringal/_build):
   Build Status [![Build
   Status](https://dev.azure.com/schnetter/ringal/_apis/build/status/eschnett.ringal?branchName=master)](https://dev.azure.com/schnetter/ringal/_build/latest?definitionId=1&branchName=master)
+
+
+
+## `TheseList` is `Semiringal`
+
+`TheseList` is based on `Data.These`. It is similar to `ZipList`,
+except that it can naturally handle lists of uneven lengths:
+
+```Haskell
+newtype TheseList a = TL [a]
+
+(<+>) :: TheseList a -> TheseList b -> TheseList (These a b)
+TL (x:xs) <+> TL (y:ys) = TL (These x y : rs)   where TL rs = TL xs <+> TL ys
+TL (x:xs) <+> TL [] = TL (This x : rs)          where TL rs = TL xs <+> TL []
+TL [] <+> TL (y:ys) = TL (That y : rs)          where TL rs = TL [] <+> TL ys
+TL _ <+> TL _ = TL []
+```
+
+`TheseList` can also be combined with the "usual" `Applicative`
+instance via `(<*>)`:
+
+```Haskell
+(<+>) :: TheseList a -> TheseList b -> TheseList (a, b)
+TL xs <*> TL ys = TL [(x, y) | x <- xs, y <- ys]
+```
+
+As it turns out, `(<+>)` distributes over `(<*>)`. Also, the empty
+list is the neutral element for `(<+>)`, and is an absorbing element
+for `(<*>)`. These are the conditions for a semiring! Hence,
+`TheseList` is semiringal.
+
+This is also witnessed by the lengths of the lists:
+
+```Haskell
+length (xs <+> ys) = length xs + length ys
+length (xs <*> ys) = length xs * length ys
+```
 
 
 

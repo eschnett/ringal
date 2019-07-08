@@ -433,6 +433,7 @@ instance AdditiveMonoidal EitherList where
 
 newtype TheseList a = TheseList { getTheseList :: [a] }
   deriving (Eq, Ord, Read, Show)
+  deriving Arbitrary via [a]
   deriving (Foldable, Functor) via []
 
 instance AdditiveSemigroupal TheseList where
@@ -618,6 +619,187 @@ instance Absorbal EL where
 -- >   distLeft (x, Right z) = Right (x, z)
 -- >   distRight (Left x, z) = Left (x, z)
 -- >   distRight (Right y, z) = Right (y, z)
+
+
+
+newtype TL a = TL [a]
+  deriving (Eq, Ord, Read, Show, Generic)
+  deriving Arbitrary via [a]
+  deriving (Foldable, Functor) via []
+
+instance AdditiveSemigroupal TL where
+  type S TL a b = S TheseList a b
+  (<+>) = coerceF2 @TheseList (<+>)
+  assocS :: forall a b c. These (These a b) c -> These a (These b c)
+  assocS = coerce1 (assocS @TheseList @a @b @c)
+  reassocS :: forall a b c. These a (These b c) -> These (These a b) c
+  reassocS = coerce1 (reassocS @TheseList @a @b @c)
+
+instance AdditiveCommutatival TL where
+  swapS :: forall a b. These a b -> These b a
+  swapS = coerce1 (swapS @TheseList @a @b)
+
+instance AdditiveMonoidal TL where
+  type Z TL = Z TheseList
+  empty = coerce (empty @TheseList)
+  unitLeftS x = coerce (unitLeftS @TheseList x)
+  reunitLeftS x = reunitLeftS @TheseList (coerce x)
+  unitRightS x = coerce (unitRightS @TheseList x)
+  reunitRightS x = reunitRightS @TheseList (coerce x)
+
+instance Semigroupal TL where
+  type P TL a b = P [] a b
+  (<*>) = coerceF2 @[] (<*>)
+  assocP :: forall a b c. (,) ((,) a b) c -> (,) a ((,) b c)
+  assocP = coerce1 (assocP @[] @a @b @c)
+  reassocP :: forall a b c. (,) a ((,) b c) -> (,) ((,) a b) c
+  reassocP = coerce1 (reassocP @[] @a @b @c)
+
+instance Monoidal TL where
+  type U TL = U []
+  unit = coerce (unit @[])
+  unitLeftP x = coerce (unitLeftP @[] x)
+  reunitLeftP x = reunitLeftP @[] (coerce x)
+  unitRightP x = coerce (unitRightP @[] x)
+  reunitRightP x = reunitRightP @[] (coerce x)
+
+instance Absorbal TL where
+  type ZeroP TL = ZeroP []
+  zeroP = coerce (zeroP @[])
+  zeroLeftP :: forall a. TL (P TL (ZeroP TL) a)
+  zeroLeftP = coerce (zeroLeftP @[] @a)
+  absurdLeftP :: forall a. P TL (ZeroP TL) a -> ZeroP TL
+  absurdLeftP x = coerce (absurdLeftP @[] @a (coerce x))
+  zeroRightP :: forall a. TL (P TL a (ZeroP TL))
+  zeroRightP = coerce (zeroRightP @[] @a)
+  absurdRightP :: forall a. P TL a (ZeroP TL) -> ZeroP TL
+  absurdRightP x = coerce (absurdRightP @[] @a (coerce x))
+
+-- These laws do not hold
+-- > instance Semiringal TL where
+-- >   distLeft (x, This y) = This (x, y)
+-- >   distLeft (x, That z) = That (x, z)
+-- >   distLeft (x, These y z) = These (x, y) (x, z)
+-- >   distRight (This x, z) = This (x, z)
+-- >   distRight (That y, z) = That (y, z)
+-- >   distRight (These x y, z) = These (x, z) (y, z)
+
+
+
+newtype EZ a = EZ [a]
+  deriving (Eq, Ord, Read, Show, Generic)
+  deriving Arbitrary via [a]
+  deriving (Foldable, Functor) via []
+
+instance AdditiveSemigroupal EZ where
+  type S EZ a b = S EitherList a b
+  (<+>) = coerceF2 @EitherList (<+>)
+  assocS :: forall a b c. Either (Either a b) c -> Either a (Either b c)
+  assocS = coerce1 (assocS @EitherList @a @b @c)
+  reassocS :: forall a b c. Either a (Either b c) -> Either (Either a b) c
+  reassocS = coerce1 (reassocS @EitherList @a @b @c)
+
+instance AdditiveMonoidal EZ where
+  type Z EZ = Z EitherList
+  empty = coerce (empty @EitherList)
+  unitLeftS x = coerce (unitLeftS @EitherList x)
+  reunitLeftS x = reunitLeftS @EitherList (coerce x)
+  unitRightS x = coerce (unitRightS @EitherList x)
+  reunitRightS x = reunitRightS @EitherList (coerce x)
+
+instance Semigroupal EZ where
+  type P EZ a b = P ZipList a b
+  (<*>) = coerceF2 @ZipList (<*>)
+  assocP :: forall a b c. (,) ((,) a b) c -> (,) a ((,) b c)
+  assocP = coerce1 (assocP @ZipList @a @b @c)
+  reassocP :: forall a b c. (,) a ((,) b c) -> (,) ((,) a b) c
+  reassocP = coerce1 (reassocP @ZipList @a @b @c)
+
+instance Monoidal EZ where
+  type U EZ = U ZipList
+  unit = coerce (unit @ZipList)
+  unitLeftP x = coerce (unitLeftP @ZipList x)
+  reunitLeftP x = reunitLeftP @ZipList (coerce x)
+  unitRightP x = coerce (unitRightP @ZipList x)
+  reunitRightP x = reunitRightP @ZipList (coerce x)
+
+instance Absorbal EZ where
+  type ZeroP EZ = ZeroP ZipList
+  zeroP = coerce (zeroP @ZipList)
+  zeroLeftP :: forall a. EZ (P EZ (ZeroP EZ) a)
+  zeroLeftP = coerce (zeroLeftP @ZipList @a)
+  absurdLeftP :: forall a. P EZ (ZeroP EZ) a -> ZeroP EZ
+  absurdLeftP x = coerce (absurdLeftP @ZipList @a (coerce x))
+  zeroRightP :: forall a. EZ (P EZ a (ZeroP EZ))
+  zeroRightP = coerce (zeroRightP @ZipList @a)
+  absurdRightP :: forall a. P EZ a (ZeroP EZ) -> ZeroP EZ
+  absurdRightP x = coerce (absurdRightP @ZipList @a (coerce x))
+
+-- These laws do not hold
+-- > instance Semiringal EZ where
+-- >   distLeft (x, Left y) = Left (x, y)
+-- >   distLeft (x, Right z) = Right (x, z)
+-- >   distRight (Left x, z) = Left (x, z)
+-- >   distRight (Right y, z) = Right (y, z)
+
+
+
+newtype TZ a = TZ [a]
+  deriving (Eq, Ord, Read, Show, Generic)
+  deriving Arbitrary via [a]
+  deriving (Foldable, Functor) via []
+
+instance AdditiveSemigroupal TZ where
+  type S TZ a b = S TheseList a b
+  (<+>) = coerceF2 @TheseList (<+>)
+  assocS :: forall a b c. These (These a b) c -> These a (These b c)
+  assocS = coerce1 (assocS @TheseList @a @b @c)
+  reassocS :: forall a b c. These a (These b c) -> These (These a b) c
+  reassocS = coerce1 (reassocS @TheseList @a @b @c)
+
+instance AdditiveMonoidal TZ where
+  type Z TZ = Z TheseList
+  empty = coerce (empty @TheseList)
+  unitLeftS x = coerce (unitLeftS @TheseList x)
+  reunitLeftS x = reunitLeftS @TheseList (coerce x)
+  unitRightS x = coerce (unitRightS @TheseList x)
+  reunitRightS x = reunitRightS @TheseList (coerce x)
+
+instance Semigroupal TZ where
+  type P TZ a b = P ZipList a b
+  (<*>) = coerceF2 @ZipList (<*>)
+  assocP :: forall a b c. (,) ((,) a b) c -> (,) a ((,) b c)
+  assocP = coerce1 (assocP @ZipList @a @b @c)
+  reassocP :: forall a b c. (,) a ((,) b c) -> (,) ((,) a b) c
+  reassocP = coerce1 (reassocP @ZipList @a @b @c)
+
+instance Monoidal TZ where
+  type U TZ = U ZipList
+  unit = coerce (unit @ZipList)
+  unitLeftP x = coerce (unitLeftP @ZipList x)
+  reunitLeftP x = reunitLeftP @ZipList (coerce x)
+  unitRightP x = coerce (unitRightP @ZipList x)
+  reunitRightP x = reunitRightP @ZipList (coerce x)
+
+instance Absorbal TZ where
+  type ZeroP TZ = ZeroP ZipList
+  zeroP = coerce (zeroP @ZipList)
+  zeroLeftP :: forall a. TZ (P TZ (ZeroP TZ) a)
+  zeroLeftP = coerce (zeroLeftP @ZipList @a)
+  absurdLeftP :: forall a. P TZ (ZeroP TZ) a -> ZeroP TZ
+  absurdLeftP x = coerce (absurdLeftP @ZipList @a (coerce x))
+  zeroRightP :: forall a. TZ (P TZ a (ZeroP TZ))
+  zeroRightP = coerce (zeroRightP @ZipList @a)
+  absurdRightP :: forall a. P TZ a (ZeroP TZ) -> ZeroP TZ
+  absurdRightP x = coerce (absurdRightP @ZipList @a (coerce x))
+
+instance Semiringal TZ where
+  distLeft (x, This y) = This (x, y)
+  distLeft (x, That z) = That (x, z)
+  distLeft (x, These y z) = These (x, y) (x, z)
+  distRight (This x, z) = This (x, z)
+  distRight (That y, z) = That (y, z)
+  distRight (These x y, z) = These (x, z) (y, z)
 
 
 
