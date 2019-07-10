@@ -1,6 +1,8 @@
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+
 module ELLaws where
 
-import Ringal
+import Ringal hiding (A)
 
 import Test.QuickCheck
 import Test.QuickCheck.Instances()
@@ -10,6 +12,9 @@ import Test.QuickCheck.Poly
 
 cmp :: (Eq a, Show a) => Law a -> Property
 cmp (Equal x y) = x === y
+
+fcmp :: (Eq b, Show b) => Law (a -> b) -> a -> Property
+fcmp (Equal x y) a = x a === y a
 
 
 
@@ -29,11 +34,34 @@ prop_fadd_assoc_TheseList ::
   TheseList A -> TheseList B -> TheseList C -> Property
 prop_fadd_assoc_TheseList xs ys zs = cmp $ law_fadd_assoc xs ys zs
 
+prop_fadd_comm_TheseList :: TheseList A -> TheseList B -> Property
+prop_fadd_comm_TheseList xs ys = cmp $ law_fadd_comm xs ys
+
 prop_fadd_idLeft_TheseList :: TheseList A -> Property
 prop_fadd_idLeft_TheseList xs = cmp $ law_fadd_idLeft xs
 
 prop_fadd_idRight_TheseList :: TheseList A -> Property
 prop_fadd_idRight_TheseList xs = cmp $ law_fadd_idRight xs
+
+
+
+prop_fmul_assoc_ZipList :: ZipList A -> ZipList B -> ZipList C -> Property
+prop_fmul_assoc_ZipList xs ys zs = cmp $ law_fmul_assoc xs ys zs
+
+prop_fmul_comm_ZipList :: ZipList A -> ZipList B -> Property
+prop_fmul_comm_ZipList xs ys = cmp $ law_fmul_comm xs ys
+
+prop_fmul_idLeft_ZipList :: ZipList A -> Property
+prop_fmul_idLeft_ZipList xs = cmp $ law_fmul_idLeft xs
+
+prop_fmul_idRight_ZipList :: ZipList A -> Property
+prop_fmul_idRight_ZipList xs = cmp $ law_fmul_idRight xs
+
+prop_fmul_absLeft_ZipList :: ZipList A -> Property
+prop_fmul_absLeft_ZipList xs = cmp $ law_fmul_absLeft xs
+
+prop_fmul_absRight_ZipList :: ZipList A -> Property
+prop_fmul_absRight_ZipList xs = cmp $ law_fmul_absRight xs
 
 
 
@@ -51,6 +79,31 @@ prop_fmul_absLeft_List xs = cmp $ law_fmul_absLeft xs
 
 prop_fmul_absRight_List :: [] A -> Property
 prop_fmul_absRight_List xs = cmp $ law_fmul_absRight xs
+
+
+
+prop_fmul_assoc_Function :: Fun C A -> Fun C B -> Fun C C -> C -> Property
+prop_fmul_assoc_Function (Fn xs) (Fn ys) (Fn zs) =
+  fcmp $ law_fmul_assoc xs ys zs
+
+prop_fmul_comm_Function :: Fun C A -> Fun C B -> C -> Property
+prop_fmul_comm_Function (Fn xs) (Fn ys) = fcmp $ law_fmul_comm xs ys
+
+prop_fmul_idLeft_Function :: Fun C A -> C -> Property
+prop_fmul_idLeft_Function (Fn xs) = fcmp $ law_fmul_idLeft xs
+
+prop_fmul_idRight_Function :: Fun C A -> C -> Property
+prop_fmul_idRight_Function (Fn xs) = fcmp $ law_fmul_idRight xs
+
+prop_fmul_absLeft_Function :: Fun C A -> C -> Property
+prop_fmul_absLeft_Function (Fn xs) = fcmp $ law_fmul_absLeft xs
+
+prop_fmul_absRight_Function :: Fun C A -> C -> Property
+prop_fmul_absRight_Function (Fn xs) = fcmp $ law_fmul_absRight xs
+
+
+
+--------------------------------------------------------------------------------
 
 
 
@@ -78,16 +131,13 @@ prop_fmul_absLeft_EL xs = cmp $ law_fmul_absLeft xs
 prop_fmul_absRight_EL :: EL A -> Property
 prop_fmul_absRight_EL xs = cmp $ law_fmul_absRight xs
 
--- > prop_distLeft_EL :: EL A -> EL B -> EL C -> Property
--- > prop_distLeft_EL xs ys zs = cmp $ law_distLeft xs ys zs
--- > 
--- > prop_distRight_EL :: EL A -> EL B -> EL C -> Property
--- > prop_distRight_EL xs ys zs = cmp $ law_distRight xs ys zs
-
 
 
 prop_fadd_assoc_TL :: TL A -> TL B -> TL C -> Property
 prop_fadd_assoc_TL xs ys zs = cmp $ law_fadd_assoc xs ys zs
+
+prop_fadd_comm_TL :: TL A -> TL B -> Property
+prop_fadd_comm_TL xs ys = cmp $ law_fadd_comm xs ys
 
 prop_fadd_idLeft_TL :: TL A -> Property
 prop_fadd_idLeft_TL xs = cmp $ law_fadd_idLeft xs
@@ -110,9 +160,9 @@ prop_fmul_absLeft_TL xs = cmp $ law_fmul_absLeft xs
 prop_fmul_absRight_TL :: TL A -> Property
 prop_fmul_absRight_TL xs = cmp $ law_fmul_absRight xs
 
--- > prop_distLeft_TL :: TL A -> TL B -> TL C -> Property
--- > prop_distLeft_TL xs ys zs = cmp $ law_distLeft xs ys zs
--- > 
+prop_distLeft_TL :: TL A -> TL B -> TL C -> Property
+prop_distLeft_TL xs ys zs = cmp $ law_distLeft xs ys zs
+
 -- > prop_distRight_TL :: TL A -> TL B -> TL C -> Property
 -- > prop_distRight_TL xs ys zs = cmp $ law_distRight xs ys zs
 
@@ -141,12 +191,6 @@ prop_fmul_absLeft_EZ xs = cmp $ law_fmul_absLeft xs
 
 prop_fmul_absRight_EZ :: EZ A -> Property
 prop_fmul_absRight_EZ xs = cmp $ law_fmul_absRight xs
-
--- prop_distLeft_EZ :: EZ A -> EZ B -> EZ C -> Property
--- prop_distLeft_EZ xs ys zs = cmp $ law_distLeft xs ys zs
--- 
--- prop_distRight_EZ :: EZ A -> EZ B -> EZ C -> Property
--- prop_distRight_EZ xs ys zs = cmp $ law_distRight xs ys zs
 
 
 

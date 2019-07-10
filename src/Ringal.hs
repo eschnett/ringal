@@ -26,6 +26,7 @@ data Law a = Equal a a
 
 class AdditiveSemigroup a where
   (+) :: a -> a -> a
+  infixl 6 +
 
 law_add_assoc :: AdditiveSemigroup a => a -> a -> a -> Law a
 law_add_assoc x y z = Equal ((x + y) + z) (x + (y + z))
@@ -46,6 +47,9 @@ law_add_idRight x = Equal x (x + zero)
 
 class AdditiveMonoid a => AdditiveGroup a where
   negate :: a -> a
+  (-) :: a -> a -> a
+  x - y = x + negate y
+  infixl 6 -
 
 law_add_invLeft :: AdditiveGroup a => a -> Law a
 law_add_invLeft x = Equal zero (negate x + x)
@@ -66,6 +70,7 @@ law_add_absRight x = Equal infinity (x + infinity)
 
 class Semigroup a where
   (*) :: a -> a -> a
+  infixl 7 *
 
 class Semigroup a => Commutative a
 
@@ -87,20 +92,63 @@ law_absRight x = Equal absorber (x * absorber)
 
 
 class (AdditiveMonoid a, AdditiveCommutative a, Monoid a, Absorbing a) =>
-      Semiring a where
+      LeftSemiring a where
   fromInteger :: Integer -> a
   toInteger :: a -> Integer
 
-law_distleft :: Semiring a => a -> a -> a -> Law a
+law_distleft :: LeftSemiring a => a -> a -> a -> Law a
 law_distleft x y z = Equal (x * (y + z)) (x * y + x * z)
+
+law_abs :: LeftSemiring a => Law a
+law_abs = Equal absorber zero
+
+class LeftSemiring a => Semiring a
 
 law_distright :: Semiring a => a -> a -> a -> Law a
 law_distright x y z = Equal ((x + y) * z) (x * z + y * z)
 
-law_abs :: Semiring a => Law a
-law_abs = Equal absorber zero
-
 class (Semiring a, AdditiveGroup a) => Ring a
+
+
+
+class Semiring a => StarSemiring a where
+  star :: a -> a
+
+law_star :: StarSemiring a => a -> Law a
+law_star x = Equal (star x) (one + star x * x)
+
+
+
+class (LeftSemiring a, AdditiveMonoid v, AdditiveCommutative v) =>
+      LeftSemimodule v a where
+  (*^) :: a -> v -> v
+  infixl 7 *^
+
+law_scale_distRight :: LeftSemimodule v a => a -> v -> v -> Law v
+law_scale_distRight a x y = Equal (a *^ (x + y)) (a *^ x + a *^ y)
+
+law_scale_distLeft :: LeftSemimodule v a => a -> a -> v -> Law v
+law_scale_distLeft a b x = Equal ((a + b) *^ x) (a *^ x + b *^ x)
+
+law_scale_assoc :: LeftSemimodule v a => a -> a -> v -> Law v
+law_scale_assoc a b x = Equal ((a * b) *^ x) (a *^ (b *^ x))
+
+law_scale_one :: forall v a. LeftSemimodule v a => v -> Law v
+law_scale_one x = Equal (one @a *^ x) x
+
+law_scale_zeroLeft :: forall v a. LeftSemimodule v a => v -> Law v
+law_scale_zeroLeft x = Equal (zero @a *^ x) zero
+
+law_scale_zeroRight :: LeftSemimodule v a => a -> Law v
+law_scale_zeroRight a = Equal (a *^ zero) zero
+
+class (LeftSemimodule v a, Semiring a) => Semimodule v a
+
+class (Ring a, AdditiveGroup v, Semimodule v a) => Module v a
+
+
+
+--------------------------------------------------------------------------------
 
 
 
@@ -122,9 +170,10 @@ instance Semigroup InfNatural where
   x * y = y * x
 instance Monoid InfNatural where one = FinNat 1
 instance Absorbing InfNatural where absorber = zero
-instance Semiring InfNatural where
+instance LeftSemiring InfNatural where
   fromInteger = FinNat . Prelude.fromInteger
   toInteger = Prelude.toInteger . getFinNat
+instance Semiring InfNatural
 
 data InfInteger = PosInf
                 | NegInf
@@ -156,9 +205,10 @@ instance Semigroup InfInteger where
   x * y = y * x
 instance Monoid InfInteger where one = Finite 1
 instance Absorbing InfInteger where absorber = zero
-instance Semiring InfInteger where
+instance LeftSemiring InfInteger where
   fromInteger = Finite . Prelude.fromInteger
   toInteger = Prelude.toInteger . getFinite
+instance Semiring InfInteger
 
 
 
@@ -178,9 +228,10 @@ instance AdditiveMonoid Int where zero = 0
 instance Semigroup Int where (*) = (Prelude.*)
 instance Monoid Int where one = 1
 instance Absorbing Int where absorber = zero
-instance Semiring Int where
+instance LeftSemiring Int where
   fromInteger = Prelude.fromInteger
   toInteger = Prelude.toInteger
+instance Semiring Int
 
 newtype MinPlus a = MinPlus { getMinPlus :: a }
 minplus1 :: (a -> b) -> MinPlus a -> MinPlus b
@@ -194,9 +245,10 @@ instance AdditiveMonoid (MinPlus Int) where zero = MinPlus Prelude.maxBound
 instance Semigroup (MinPlus Int) where (*) = minplus2 (Prelude.+)
 instance Monoid (MinPlus Int) where one = MinPlus 0
 instance Absorbing (MinPlus Int) where absorber = zero
-instance Semiring (MinPlus Int) where
+instance LeftSemiring (MinPlus Int) where
   fromInteger = MinPlus . Prelude.fromInteger
   toInteger = Prelude.toInteger . getMinPlus
+instance Semiring (MinPlus Int)
 
 instance AdditiveSemigroup (MinPlus Word) where (+) = minplus2 Prelude.min
 instance AdditiveCommutative (MinPlus Word)
@@ -204,9 +256,10 @@ instance AdditiveMonoid (MinPlus Word) where zero = MinPlus Prelude.maxBound
 instance Semigroup (MinPlus Word) where (*) = minplus2 (Prelude.+)
 instance Monoid (MinPlus Word) where one = MinPlus 0
 instance Absorbing (MinPlus Word) where absorber = zero
-instance Semiring (MinPlus Word) where
+instance LeftSemiring (MinPlus Word) where
   fromInteger = MinPlus . Prelude.fromInteger
   toInteger = Prelude.toInteger . getMinPlus
+instance Semiring (MinPlus Word)
 
 newtype MaxPlus a = MaxPlus { getMaxPlus :: a }
 maxplus1 :: (a -> b) -> MaxPlus a -> MaxPlus b
@@ -220,9 +273,10 @@ instance AdditiveMonoid (MaxPlus Int) where zero = MaxPlus Prelude.minBound
 instance Semigroup (MaxPlus Int) where (*) = maxplus2 (Prelude.+)
 instance Monoid (MaxPlus Int) where one = MaxPlus 0
 instance Absorbing (MaxPlus Int) where absorber = zero
-instance Semiring (MaxPlus Int) where
+instance LeftSemiring (MaxPlus Int) where
   fromInteger = MaxPlus . Prelude.fromInteger
   toInteger = Prelude.toInteger . getMaxPlus
+instance Semiring (MaxPlus Int)
 
 instance AdditiveSemigroup (MaxPlus Word) where (+) = maxplus2 Prelude.max
 instance AdditiveCommutative (MaxPlus Word)
@@ -246,9 +300,10 @@ instance AdditiveMonoid (MaxTimes Word) where zero = MaxTimes Prelude.minBound
 instance Semigroup (MaxTimes Word) where (*) = maxtimes2 (Prelude.+)
 instance Monoid (MaxTimes Word) where one = MaxTimes 1
 instance Absorbing (MaxTimes Word) where absorber = zero
-instance Semiring (MaxTimes Word) where
+instance LeftSemiring (MaxTimes Word) where
   fromInteger = MaxTimes . Prelude.fromInteger
   toInteger = Prelude.toInteger . getMaxTimes
+instance Semiring (MaxTimes Word)
 -- ^ Note that 'MinTimes Word' is not a 'Semiring'.
 
 
@@ -267,6 +322,8 @@ class Functor f => Foldable f where
 
 instance Functor [] where map = Prelude.map
 instance Foldable [] where length = Prelude.length
+
+instance Functor ((->) x) where map = (.)
 
 
 
@@ -400,16 +457,18 @@ law_fmul_absRight xs =
 
 class ( AdditiveMonoidal f, AdditiveCommutatival f
       , Monoidal f, Absorbal f, ZeroP f ~ Z f) =>
-      Semiringal f where
+      LeftSemiringal f where
   distLeft :: P f a (S f b c) -> S f (P f a b) (P f a c)
-  distRight :: P f (S f a b) c -> S f (P f a c) (P f b c)
 
-law_distLeft :: forall f a b c. Semiringal f
+law_distLeft :: forall f a b c. LeftSemiringal f
              => f a -> f b -> f c -> Law (f (S f (P f a b) (P f a c)))
 law_distLeft xs ys zs =
   Equal
   (map (distLeft @f @a @b @c) (xs <*> (ys <+> zs)))
   (xs <*> ys <+> xs <*> zs)
+
+class LeftSemiringal f => Semiringal f where
+  distRight :: P f (S f a b) c -> S f (P f a c) (P f b c)
 
 law_distRight :: forall f a b c. Semiringal f
              => f a -> f b -> f c -> Law (f (S f (P f a c) (P f b c)))
@@ -422,12 +481,27 @@ class (Semiringal f, AdditiveGroupal f) => Ringal f
 
 
 
+class (Semiringal f, AdditiveMonoidal v, AdditiveCommutatival v) =>
+      LeftSemimodular v f where
+  type A v f a :: Type
+  (<*>^) :: f a -> v a -> v (A v f a)
+  infixl 4 <*>^
+
+class LeftSemimodular v f => Semimodular v f
+
+class (Ringal f, AdditiveGroupal v, Semimodular v f) => Modular v f
+
+
+
 --------------------------------------------------------------------------------
 
 
 
 instance AdditiveSemigroup [a] where (+) = (++)
 instance AdditiveMonoid [a] where zero = []
+
+instance AdditiveSemigroup a => AdditiveSemigroup ((->) x a) where
+  f + g = \x -> f x + g x
 
 
 
@@ -450,9 +524,7 @@ instance AdditiveSemigroupal EitherList where
   reassocS (Right (Left y)) = Left (Right y)
   reassocS (Right (Right z)) = Right z
 
-instance AdditiveCommutatival EitherList where
-  swapS (Left x) = Right x
-  swapS (Right y) = Left y
+-- Note: EitherList does not commute
 
 instance AdditiveMonoidal EitherList where
   type Z EitherList = Void
@@ -516,6 +588,7 @@ instance AdditiveMonoidal TheseList where
 
 newtype ZipList a = ZipList { getZipList :: [a] }
   deriving (Eq, Ord, Read, Show)
+  deriving Arbitrary via [a]
   deriving (Foldable, Functor) via []
 
 instance Semigroupal ZipList where
@@ -549,7 +622,9 @@ instance Absorbal ZipList where
 
 instance Semigroupal [] where
   type P [] a b = (a, b)
-  xs <*> ys = [(x, y) | x <- xs, y <- ys]
+  -- xs <*> ys = [(x, y) | x <- xs, y <- ys]
+  -- | Note reversed order of 'x' and 'y'
+  xs <*> ys = [(x, y) | y <- ys, x <- xs]
   assocP ((x, y), z) = (x, (y, z))
   reassocP (x, (y, z)) = ((x, y), z)
 
@@ -567,6 +642,33 @@ instance Absorbal [] where
   zeroLeftP = []
   absurdLeftP (z, _) = absurd z
   zeroRightP = []
+  absurdRightP (_, z) = absurd z
+
+
+
+instance Semigroupal ((->) x) where
+  type P ((->) x) a b = (,) a b
+  f <*> g = \x -> (f x, g x)
+  assocP ((f, g), h) = (f, (g, h))
+  reassocP (f, (g, h)) = ((f, g), h)
+
+instance Commutatival ((->) x) where
+  swapP (f, g) = (g, f)
+
+instance Monoidal ((->) x) where
+  type U ((->) x) = (->) x x
+  unit = const id
+  unitLeftP f = (id, f)
+  reunitLeftP (_, f) = f
+  unitRightP f = (f, id)
+  reunitRightP (f, _) = f
+
+instance Absorbal ((->) x) where
+  type ZeroP ((->) x) = Void
+  zeroP = const undefined
+  zeroLeftP = const undefined
+  absurdLeftP (z, _) = absurd z
+  zeroRightP = const undefined
   absurdRightP (_, z) = absurd z
 
 
@@ -648,13 +750,6 @@ instance Absorbal EL where
   absurdRightP :: forall a. P EL a (ZeroP EL) -> ZeroP EL
   absurdRightP x = coerce (absurdRightP @[] @a (coerce x))
 
--- These laws do not hold
--- > instance Semiringal EL where
--- >   distLeft (x, Left y) = Left (x, y)
--- >   distLeft (x, Right z) = Right (x, z)
--- >   distRight (Left x, z) = Left (x, z)
--- >   distRight (Right y, z) = Right (y, z)
-
 
 
 newtype TL a = TL [a]
@@ -710,11 +805,13 @@ instance Absorbal TL where
   absurdRightP :: forall a. P TL a (ZeroP TL) -> ZeroP TL
   absurdRightP x = coerce (absurdRightP @[] @a (coerce x))
 
+instance LeftSemiringal TL where
+  distLeft (x, This y) = This (x, y)
+  distLeft (x, That z) = That (x, z)
+  distLeft (x, These y z) = These (x, y) (x, z)
+
 -- These laws do not hold
 -- > instance Semiringal TL where
--- >   distLeft (x, This y) = This (x, y)
--- >   distLeft (x, That z) = That (x, z)
--- >   distLeft (x, These y z) = These (x, y) (x, z)
 -- >   distRight (This x, z) = This (x, z)
 -- >   distRight (That y, z) = That (y, z)
 -- >   distRight (These x y, z) = These (x, z) (y, z)
@@ -733,10 +830,6 @@ instance AdditiveSemigroupal EZ where
   assocS = coerce1 (assocS @EitherList @a @b @c)
   reassocS :: forall a b c. Either a (Either b c) -> Either (Either a b) c
   reassocS = coerce1 (reassocS @EitherList @a @b @c)
-
-instance AdditiveCommutatival EZ where
-  swapS :: forall a b. Either a b -> Either b a
-  swapS x = coerce (swapS @EitherList @a @b (coerce x))
 
 instance AdditiveMonoidal EZ where
   type Z EZ = Z EitherList
@@ -777,13 +870,6 @@ instance Absorbal EZ where
   zeroRightP = coerce (zeroRightP @ZipList @a)
   absurdRightP :: forall a. P EZ a (ZeroP EZ) -> ZeroP EZ
   absurdRightP x = coerce (absurdRightP @ZipList @a (coerce x))
-
--- These laws do not hold
--- > instance Semiringal EZ where
--- >   distLeft (x, Left y) = Left (x, y)
--- >   distLeft (x, Right z) = Right (x, z)
--- >   distRight (Left x, z) = Left (x, z)
--- >   distRight (Right y, z) = Right (y, z)
 
 
 
@@ -844,13 +930,22 @@ instance Absorbal TZ where
   absurdRightP :: forall a. P TZ a (ZeroP TZ) -> ZeroP TZ
   absurdRightP x = coerce (absurdRightP @ZipList @a (coerce x))
 
-instance Semiringal TZ where
+instance LeftSemiringal TZ where
   distLeft (x, This y) = This (x, y)
   distLeft (x, That z) = That (x, z)
   distLeft (x, These y z) = These (x, y) (x, z)
+
+instance Semiringal TZ where
   distRight (This x, z) = This (x, z)
   distRight (That y, z) = That (y, z)
   distRight (These x y, z) = These (x, z) (y, z)
+
+
+
+-- TODO:
+-- - left/right semirings where distributivit is only left/right
+-- - pre-semirings, where multiplication has no neutral element
+-- - near-semiring, a pre-semiring where addition also has no neutral element
 
 
 
